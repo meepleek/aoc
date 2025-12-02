@@ -16,7 +16,7 @@ pub async fn get_input(mut root: PathBuf, day: u8) -> anyhow::Result<String> {
             let session_token = env::var("SESSION_TOKEN")?;
             let client = reqwest::Client::new();
             let input = client
-                .get(format!("https://adventofcode.com/2024/day/{day}/input"))
+                .get(format!("https://adventofcode.com/2025/day/{day}/input"))
                 .header("Cookie", format!("session={session_token}"))
                 .send()
                 .await?
