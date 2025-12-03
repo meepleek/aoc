@@ -1,20 +1,21 @@
 [package]
 name = "day-2"
 version = "0.1.0"
-edition = "2021"
+edition = "2024"
 
 [dependencies]
 anyhow.workspace = true
 aoc-client.workspace = true
 clap.workspace = true
+itertools.workspace = true
 tracing.workspace = true
 tracing-subscriber.workspace = true
 tokio.workspace = true
 
 [dev-dependencies]
 criterion.workspace = true
-test-case.workspace = true
 tracing-test.workspace = true
+rstest.workspace = true
 
 [lints]
 workspace = true
