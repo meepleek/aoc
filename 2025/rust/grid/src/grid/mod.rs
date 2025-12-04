@@ -100,6 +100,16 @@ impl<T> Grid<T> {
     }
 
     #[must_use]
+    pub fn is_walkable(&self, tile: IVec2) -> bool {
+        self.within_bounds(tile) && self.walkable_tiles.contains_key(&tile.as_uvec2())
+    }
+
+    #[must_use]
+    pub fn is_obstacle(&self, tile: IVec2) -> bool {
+        self.within_bounds(tile) && !self.walkable_tiles.contains_key(&tile.as_uvec2())
+    }
+
+    #[must_use]
     pub fn neighbours(&self, tile: UVec2) -> Vec<Neigbour> {
         self.neighbours_impl(DIRS_4, tile)
     }
@@ -194,7 +204,7 @@ impl<T> Grid<T> {
                 dbg_map.push('#');
             }
         }
-        dbg_map.push_str(&format!("\n {}", &x_axis));
+        dbg_map.push_str(&format!("\n  {}", &x_axis));
         println!("{dbg_map}");
     }
 }
