@@ -101,7 +101,7 @@ impl<TValue: Default, TProcessCtx> GridBuilder<TValue, TProcessCtx> {
         for (y, line) in lines.take_while(|l| !l.is_empty()).enumerate() {
             for (x, c) in line.chars().enumerate() {
                 let tile = UVec2::new(x as _, y as _);
-                size = tile;
+                size = tile + UVec2::ONE;
                 if process_tile
                     .as_mut()
                     .is_some_and(|process_tile| process_tile(process_ctx, c, tile))
