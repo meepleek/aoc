@@ -1,4 +1,6 @@
 pub mod solution {
+    use math::POWERS_OF_10;
+
     #[tracing::instrument(skip(input))]
     pub fn part_a(input: &str) -> anyhow::Result<String> {
         let total: usize = input.lines().map(jolts_a).sum();
@@ -26,18 +28,33 @@ pub mod solution {
         (first_num * 10 + second_num) as usize
     }
 
-    // pub(super) fn jolts_a(line: &str) -> usize {
-    //     let mut chars: Vec<_> = line.char_indices().collect();
-    //     chars.sort_by_key(|(_, c)| Reverse(*c));
-    //     let mut top_chars: Vec<_> = chars.iter().take(2).collect();
-    //     top_chars.sort_by_key(|(i, _)| i);
-    //     let str: String = top_chars.into_iter().map(|(_, c)| c).collect();
-    //     str.parse().expect("Valid num")
-    // }
-
     #[tracing::instrument(skip(input))]
     pub fn part_b(input: &str) -> anyhow::Result<String> {
-        todo!("b")
+        let total: usize = input.lines().map(jolts_b).sum();
+        Ok(total.to_string())
+    }
+
+    pub(super) fn jolts_b(line: &str) -> usize {
+        let res = [0usize; 12];
+        let chars: Vec<_> = line.char_indices().collect();
+        let mut jolts = 0;
+        let mut start = 0;
+
+        for i in 0..res.len() {
+            let from = start.min(chars.len() - 1);
+            let (max_i, max_c) = chars
+                .iter()
+                .skip(from)
+                .take(chars.len() - (res.len() - i) - from + 1)
+                // take first max index instead of last
+                .max_by(|a, b| a.1.cmp(&b.1).then_with(|| b.0.cmp(&a.0)))
+                .expect("More than 1 char");
+            let num = max_c.to_digit(10).expect("Is number") as u64;
+            jolts += (num * POWERS_OF_10[res.len() - i - 1]) as usize;
+            start = *max_i + 1;
+        }
+
+        jolts
     }
 }
 
@@ -49,7 +66,7 @@ mod tests {
 
     const TEST_INPUT: &str = include_str!("../inputs/example.txt");
     const EXPECTED_A: &str = "357";
-    const EXPECTED_B: &str = "todo_expected_b";
+    const EXPECTED_B: &str = "3121910778619";
 
     #[test]
     #[traced_test]
@@ -74,5 +91,15 @@ mod tests {
     #[traced_test]
     fn day_3_a_jolts(#[case] line: &str, #[case] expected_joltage: usize) {
         assert_eq!(expected_joltage, solution::jolts_a(line))
+    }
+
+    #[rstest]
+    #[case("987654321111111", 987654321111)]
+    #[case("811111111111119", 811111111119)]
+    #[case("234234234234278", 434234234278)]
+    #[case("818181911112111", 888911112111)]
+    #[traced_test]
+    fn day_3_b_jolts(#[case] line: &str, #[case] expected_joltage: usize) {
+        assert_eq!(expected_joltage, solution::jolts_b(line))
     }
 }
