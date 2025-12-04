@@ -4,7 +4,6 @@ pub trait UVec2Ext {
     fn manhattan_distance(&self, other: UVec2) -> u32;
 }
 impl UVec2Ext for UVec2 {
-    #[must_use]
     fn manhattan_distance(&self, other: UVec2) -> u32 {
         (self.as_ivec2() - other.as_ivec2()).abs().element_sum() as _
     }
