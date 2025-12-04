@@ -2,7 +2,11 @@ use glam::{IVec2, UVec2};
 use pathfinding::directed::astar::astar;
 use std::collections::{HashMap, HashSet};
 
-use crate::{dir::DIRS_4, iter::grid_iter, UVec2Ext};
+use crate::{
+    dir::{DIRS_4, DIRS_8},
+    iter::grid_iter,
+    UVec2Ext,
+};
 
 pub mod builder;
 
@@ -97,8 +101,21 @@ impl<T> Grid<T> {
 
     #[must_use]
     pub fn neighbours(&self, tile: UVec2) -> Vec<Neigbour> {
-        DIRS_4
-            .iter()
+        self.neighbours_impl(DIRS_4, tile)
+    }
+
+    #[must_use]
+    pub fn neighbours_8(&self, tile: UVec2) -> Vec<Neigbour> {
+        self.neighbours_impl(DIRS_8, tile)
+    }
+
+    #[must_use]
+    fn neighbours_impl<const DIRS_LEN: usize>(
+        &self,
+        dirs: [IVec2; DIRS_LEN],
+        tile: UVec2,
+    ) -> Vec<Neigbour> {
+        dirs.iter()
             .filter_map(|d| {
                 self.move_target(tile, *d)
                     .map(|(c, _)| Neigbour::new(c, *d))
@@ -106,10 +123,24 @@ impl<T> Grid<T> {
             .collect()
     }
 
+    // todo: docs - what is this supposed to do again?
     #[must_use]
     pub fn obstacle_neighbours(&self, tile: UVec2) -> Vec<Neigbour> {
-        DIRS_4
-            .iter()
+        self.obstacle_neighbours_impl(DIRS_4, tile)
+    }
+
+    #[must_use]
+    pub fn obstacle_neighbours_8(&self, tile: UVec2) -> Vec<Neigbour> {
+        self.obstacle_neighbours_impl(DIRS_8, tile)
+    }
+
+    #[must_use]
+    pub fn obstacle_neighbours_impl<const DIRS_LEN: usize>(
+        &self,
+        dirs: [IVec2; DIRS_LEN],
+        tile: UVec2,
+    ) -> Vec<Neigbour> {
+        dirs.iter()
             .filter_map(|d| {
                 let target = Self::move_tile(tile, *d);
                 if self.move_within_bounds(tile, *d) {
@@ -142,7 +173,7 @@ impl<T> Grid<T> {
         &self,
         mut format_walkable: TFnFormatWalkable,
     ) {
-        let size = self.size() + UVec2::ONE;
+        let size = self.size();
         let mut dbg_map = String::with_capacity(size.element_product() as _);
         let x_axis = (0..size.x)
             .map(|i| (i % 10).to_string())
