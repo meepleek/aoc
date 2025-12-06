@@ -1,15 +1,15 @@
 pub mod solution {
+    use parse::range::parse_inclusive_range;
+
     use crate::solution;
 
     #[tracing::instrument(skip(input))]
     pub fn part_a(input: &str) -> anyhow::Result<String> {
         let res: usize = input
             .split(",")
-            .map(|range| {
-                let (from, to) = range.trim().split_once("-").expect("valid range");
-                let from: usize = from.parse().expect("valid from");
-                let to: usize = to.parse().expect("valid to");
-                (from..=to)
+            .map(|text| {
+                let range = parse_inclusive_range::<usize>(text.trim_end()).expect("valid range");
+                range
                     .filter(|num| {
                         let str = num.to_string();
                         let (a, b) = str.split_at(str.len() / 2);
@@ -26,11 +26,9 @@ pub mod solution {
     pub fn part_b(input: &str) -> anyhow::Result<String> {
         let res: usize = input
             .split(",")
-            .map(|range| {
-                let (from, to) = range.trim().split_once("-").expect("valid range");
-                let from: usize = from.parse().expect("valid from");
-                let to: usize = to.parse().expect("valid to");
-                (from..=to)
+            .map(|text| {
+                let range = parse_inclusive_range::<usize>(text.trim_end()).expect("valid range");
+                range
                     .filter(|num| solution::is_invalid_b(*num))
                     .sum::<usize>()
             })
