@@ -1,16 +1,56 @@
 use std::ops::{Range, RangeInclusive};
 
-pub fn merge_ranges<T: PartialOrd + Clone + Copy>(a: &Range<T>, b: &Range<T>) -> Option<Range<T>> {
-    let (from, to) = merge_tuple_ranges((a.start, a.end), (b.start, b.end))?;
-    Some(from..to)
+pub trait BoundedRange<T> {
+    fn from(&self) -> T;
+    fn to(&self) -> T;
+    fn new(from: T, to: T) -> Self;
 }
 
-pub fn merge_inclusive_ranges<T: PartialOrd + Clone + Copy>(
-    a: &RangeInclusive<T>,
-    b: &RangeInclusive<T>,
-) -> Option<RangeInclusive<T>> {
-    let (from, to) = merge_tuple_ranges((*a.start(), *a.end()), (*b.start(), *b.end()))?;
-    Some(from..=to)
+impl<T: Copy> BoundedRange<T> for Range<T> {
+    fn from(&self) -> T {
+        self.start
+    }
+    fn to(&self) -> T {
+        self.end
+    }
+    fn new(from: T, to: T) -> Self {
+        from..to
+    }
+}
+impl<T: Copy> BoundedRange<T> for RangeInclusive<T> {
+    fn from(&self) -> T {
+        *self.start()
+    }
+    fn to(&self) -> T {
+        *self.end()
+    }
+    fn new(from: T, to: T) -> Self {
+        from..=to
+    }
+}
+impl<T: Copy> BoundedRange<T> for (T, T) {
+    fn from(&self) -> T {
+        self.0
+    }
+    fn to(&self) -> T {
+        self.1
+    }
+    fn new(from: T, to: T) -> Self {
+        (from, to)
+    }
+}
+
+pub fn merge_bounded_ranges<TElement: PartialOrd, TRange: BoundedRange<TElement>>(
+    a: TRange,
+    b: TRange,
+) -> Option<TRange> {
+    match true {
+        _ if a.from() <= b.from() && a.to() >= b.to() => Some(TRange::new(a.from(), a.to())),
+        _ if b.from() <= a.from() && b.to() >= a.to() => Some(TRange::new(b.from(), b.to())),
+        _ if a.to() >= b.from() && a.to() <= b.to() => Some(TRange::new(a.from(), b.to())),
+        _ if b.to() >= a.from() && b.to() <= a.to() => Some(TRange::new(b.from(), a.to())),
+        _ => None,
+    }
 }
 
 pub fn merge_tuple_ranges<T: PartialOrd + Clone + Copy>(
@@ -26,9 +66,34 @@ pub fn merge_tuple_ranges<T: PartialOrd + Clone + Copy>(
     }
 }
 
+pub fn merge_all_bounded_ranges<TElement: PartialOrd, TBound: BoundedRange<TElement> + Clone>(
+    ranges: &mut Vec<TBound>,
+) {
+    'merge_ranges: loop {
+        let ranges_range = 0..ranges.len();
+        for i in ranges_range.clone() {
+            for j in ranges_range.clone() {
+                if i == j {
+                    continue;
+                }
+                if let Some(merged_range) =
+                    merge_bounded_ranges(ranges[i].clone(), ranges[j].clone())
+                {
+                    // remove from end
+                    ranges.remove(i.max(j));
+                    ranges.remove(j.min(i));
+                    ranges.push(merged_range);
+                    continue 'merge_ranges;
+                }
+            }
+        }
+
+        break;
+    }
+}
+
 #[cfg(test)]
 mod tests {
-    use super::*;
     use rstest::rstest;
 
     #[rstest]
@@ -37,13 +102,13 @@ mod tests {
     #[case((0, 5), (1, 10), Some((0, 10)))]
     #[case((0, 1), (0, 3), Some((0, 3)))]
     #[case((0, 100), (10, 11), Some((0, 100)))]
-    fn merge_ranges(
+    fn merge_bounded_ranges(
         #[case] a: (usize, usize),
         #[case] b: (usize, usize),
         #[case] expected_result: Option<(usize, usize)>,
     ) {
-        let merged = merge_tuple_ranges(a, b);
-        let merged_reverse = merge_tuple_ranges(b, a);
+        let merged = super::merge_bounded_ranges(a, b);
+        let merged_reverse = super::merge_bounded_ranges(b, a);
 
         assert_eq!(expected_result, merged);
         assert_eq!(expected_result, merged_reverse);
