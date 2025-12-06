@@ -1,6 +1,6 @@
 pub mod solution {
     use parse::range::parse_inclusive_range;
-    use range::merge_inclusive_ranges;
+    use range::merge_all_bounded_ranges;
 
     #[tracing::instrument(skip(input))]
     pub fn part_a(input: &str) -> anyhow::Result<String> {
@@ -42,29 +42,7 @@ pub mod solution {
             })
             .collect();
         ranges.sort_by_key(|r| *r.start());
-
-        // iterate over all ranges in an endless loop
-        // merge overlapping ranges
-        // break once no merge has happened for the whole iteration
-        'merge_ranges: loop {
-            let ranges_range = 0..ranges.len();
-            for i in ranges_range.clone() {
-                for j in ranges_range.clone() {
-                    if i == j {
-                        continue;
-                    }
-                    if let Some(merged_range) = merge_inclusive_ranges(&ranges[i], &ranges[j]) {
-                        // remove from end
-                        ranges.remove(i.max(j));
-                        ranges.remove(j.min(i));
-                        ranges.push(merged_range);
-                        continue 'merge_ranges;
-                    }
-                }
-            }
-
-            break;
-        }
+        merge_all_bounded_ranges(&mut ranges);
 
         let total: usize = ranges.into_iter().map(|r| r.end() - r.start() + 1).sum();
         Ok(total.to_string())
