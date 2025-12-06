@@ -8,6 +8,7 @@ aoc-client = { path = "aoc-client" }
 grid = { path = "grid" }
 math = { path = "math" }
 parse = { path = "parse" }
+range = { path = "range" }
 anyhow = "1.0.93"
 clap = { version = "4.5.21", features = ["derive"] }
 count-digits = "0.5.1"
