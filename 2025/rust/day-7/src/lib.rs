@@ -20,12 +20,8 @@ pub mod solution {
             for x in &beams {
                 if l[*x] == '^' {
                     split_count += 1;
-                    if *x > 0 {
-                        line_beams.push(x - 1);
-                    }
-                    if *x < (width - 1) {
-                        line_beams.push(x + 1);
-                    }
+                    line_beams.push(x - 1);
+                    line_beams.push(x + 1);
                 } else {
                     line_beams.push(*x);
                 }
