@@ -38,6 +38,9 @@ path = "../day-6"
 [dependencies.day-7]
 path = "../day-7"
 
+[dependencies.day-8]
+path = "../day-8"
+
 [dependencies.tokio]
 version = "1.41.1"
 features = ["rt-multi-thread", "macros"]
