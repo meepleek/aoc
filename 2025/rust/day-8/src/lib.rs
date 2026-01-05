@@ -1,5 +1,6 @@
 pub mod solution {
-    use kdtree::{KdTree, distance::squared_euclidean};
+    use glam::Vec3;
+    use itertools::Itertools;
     use std::collections::{BinaryHeap, HashSet};
 
     #[derive(Debug, Clone, PartialEq)]
@@ -30,43 +31,11 @@ pub mod solution {
         input: &str,
         connection_count: usize,
     ) -> anyhow::Result<String> {
-        let coords: Vec<_> = input
-            .lines()
-            .map(|l| {
-                let (x, rest) = l.split_once(',').unwrap();
-                let (y, z) = rest.split_once(',').unwrap();
-                [
-                    x.parse::<f32>().unwrap(),
-                    y.parse().unwrap(),
-                    z.parse().unwrap(),
-                ]
-            })
-            .collect();
-
-        let mut kdtree = KdTree::new(3);
-        for (i, c) in coords.iter().enumerate() {
-            kdtree.add(c, i).unwrap();
-        }
-        let mut distances = BinaryHeap::new();
-
-        for (a_i, a) in coords.iter().enumerate() {
-            let nearest = kdtree
-                .iter_nearest(a, &squared_euclidean)
-                .unwrap()
-                .skip(1) // skip connection to self (0 dist)
-                .take((connection_count / 2).max(10))
-                .map(|(dist_sq, b_i)| DistIndex {
-                    dist_sq,
-                    index_a: a_i,
-                    index_b: *b_i,
-                });
-            distances.extend(nearest);
-        }
-
+        let coords = parse_coords(input);
+        let mut distances = distances(&coords);
         let mut circuits: Vec<HashSet<usize>> = Vec::with_capacity(connection_count);
         for _ in 0..connection_count {
             let nearest = distances.pop().expect("Nearest is available");
-            _ = distances.pop(); // nearest pairs come in... um, pairs, so discard the dupe
             match (
                 circuits
                     .iter()
@@ -101,54 +70,16 @@ pub mod solution {
 
         circuits.sort_unstable_by_key(|c| c.len());
         let res: usize = circuits.iter().rev().take(3).map(|c| c.len()).product();
-        // let circuit_coords = circuits
-        //     .iter()
-        //     .rev()
-        //     .take(3)
-        //     .map(|c| c.iter().map(|i| coords[*i]).collect::<Vec<_>>())
-        //     .collect::<Vec<_>>();
         Ok(res.to_string())
     }
 
     #[tracing::instrument(skip(input))]
     pub fn part_b(input: &str) -> anyhow::Result<String> {
-        let coords: Vec<_> = input
-            .lines()
-            .map(|l| {
-                let (x, rest) = l.split_once(',').unwrap();
-                let (y, z) = rest.split_once(',').unwrap();
-                [
-                    x.parse::<f32>().unwrap(),
-                    y.parse().unwrap(),
-                    z.parse().unwrap(),
-                ]
-            })
-            .collect();
-        tracing::info!(coords_len = coords.len());
-
-        let mut kdtree = KdTree::new(3);
-        for (i, c) in coords.iter().enumerate() {
-            kdtree.add(c, i).unwrap();
-        }
-        let mut distances = BinaryHeap::new();
-
-        for (a_i, a) in coords.iter().enumerate() {
-            let nearest = kdtree
-                .iter_nearest(a, &squared_euclidean)
-                .unwrap()
-                .skip(1) // skip connection to self (0 dist)
-                .map(|(dist_sq, b_i)| DistIndex {
-                    dist_sq,
-                    index_a: a_i,
-                    index_b: *b_i,
-                });
-            distances.extend(nearest);
-        }
-
+        let coords = parse_coords(input);
+        let mut distances = distances(&coords);
         let mut circuits: Vec<HashSet<usize>> = Vec::with_capacity(1000);
         loop {
             let nearest = distances.pop().expect("Nearest is available");
-            _ = distances.pop(); // nearest pairs come in... um, pairs, so discard the dupe
             match (
                 circuits
                     .iter()
@@ -184,6 +115,7 @@ pub mod solution {
                 tracing::warn!(a_x, b_x);
                 // tracing::warn!(?circuits);
                 tracing::warn!(circuit_lens=?circuits.iter().map(|c| c.len()).collect::<Vec<_>>());
+
                 return Ok((a_x * b_x).to_string());
             } else {
                 tracing::warn!(circuit_count = circuits.len());
@@ -192,6 +124,31 @@ pub mod solution {
                 }
             }
         }
+    }
+
+    fn parse_coords(input: &str) -> Vec<Vec3> {
+        input
+            .lines()
+            .map(|l| {
+                let (x, rest) = l.split_once(',').unwrap();
+                let (y, z) = rest.split_once(',').unwrap();
+                Vec3::new(x.parse().unwrap(), y.parse().unwrap(), z.parse().unwrap())
+            })
+            .collect()
+    }
+
+    fn distances(coords: &[Vec3]) -> BinaryHeap<DistIndex> {
+        coords
+            .iter()
+            .enumerate()
+            .tuple_combinations()
+            .map(|((a_i, a), (b_i, b))| DistIndex {
+                dist_sq: a.distance_squared(*b),
+                index_a: a_i,
+                index_b: b_i,
+            })
+            // .filter(|d| d.index_a != d.index_b && d.dist_sq > 0.)
+            .collect::<BinaryHeap<_>>()
     }
 }
 
