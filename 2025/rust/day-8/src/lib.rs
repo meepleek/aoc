@@ -1,5 +1,5 @@
 pub mod solution {
-    use glam::Vec3;
+    use glam::IVec3;
     use itertools::Itertools;
     use std::collections::HashSet;
 
@@ -82,28 +82,27 @@ pub mod solution {
         }
     }
 
-    fn parse_coords(input: &str) -> Vec<Vec3> {
+    fn parse_coords(input: &str) -> Vec<IVec3> {
         input
             .lines()
             .map(|l| {
                 let (x, rest) = l.split_once(',').unwrap();
                 let (y, z) = rest.split_once(',').unwrap();
-                Vec3::new(x.parse().unwrap(), y.parse().unwrap(), z.parse().unwrap())
+                IVec3::new(x.parse().unwrap(), y.parse().unwrap(), z.parse().unwrap())
             })
             .collect()
     }
 
-    fn distances(coords: &[Vec3]) -> Vec<DistIndex> {
+    fn distances(coords: &[IVec3]) -> Vec<DistIndex> {
         let mut distances: Vec<_> = coords
             .iter()
             .enumerate()
             .tuple_combinations()
             .map(|((a_i, a), (b_i, b))| DistIndex {
-                dist_sq: a.distance_squared(*b),
+                dist_sq: a.as_vec3().distance_squared(b.as_vec3()),
                 index_a: a_i,
                 index_b: b_i,
             })
-            // .filter(|d| d.index_a != d.index_b && d.dist_sq > 0.)
             .collect();
         distances.sort_by(|a, b| b.dist_sq.partial_cmp(&a.dist_sq).unwrap());
         distances
