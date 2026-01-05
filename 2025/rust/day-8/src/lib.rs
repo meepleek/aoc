@@ -1,7 +1,7 @@
 pub mod solution {
     use glam::Vec3;
     use itertools::Itertools;
-    use std::collections::{BinaryHeap, HashSet};
+    use std::collections::HashSet;
 
     #[derive(Debug, Clone, PartialEq)]
     struct DistIndex {
@@ -9,17 +9,6 @@ pub mod solution {
         index_a: usize,
         index_b: usize,
     }
-    impl PartialOrd for DistIndex {
-        fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-            other.dist_sq.partial_cmp(&self.dist_sq)
-        }
-    }
-    impl Ord for DistIndex {
-        fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-            self.partial_cmp(other).unwrap()
-        }
-    }
-    impl Eq for DistIndex {}
 
     #[tracing::instrument(skip(input))]
     pub fn part_a(input: &str) -> anyhow::Result<String> {
@@ -137,8 +126,8 @@ pub mod solution {
             .collect()
     }
 
-    fn distances(coords: &[Vec3]) -> BinaryHeap<DistIndex> {
-        coords
+    fn distances(coords: &[Vec3]) -> Vec<DistIndex> {
+        let mut distances: Vec<_> = coords
             .iter()
             .enumerate()
             .tuple_combinations()
@@ -148,7 +137,9 @@ pub mod solution {
                 index_b: b_i,
             })
             // .filter(|d| d.index_a != d.index_b && d.dist_sq > 0.)
-            .collect::<BinaryHeap<_>>()
+            .collect();
+        distances.sort_by(|a, b| b.dist_sq.partial_cmp(&a.dist_sq).unwrap());
+        distances
     }
 }
 
