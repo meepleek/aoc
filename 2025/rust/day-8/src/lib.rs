@@ -1,11 +1,28 @@
 pub mod solution {
-    use std::collections::HashSet;
+    use kdtree::{KdTree, distance::squared_euclidean};
+    use std::collections::{BinaryHeap, HashSet};
 
-    use glam::{IVec3, Vec3};
+    #[derive(Debug, Clone, PartialEq)]
+    struct DistIndex {
+        dist_sq: f32,
+        index_a: usize,
+        index_b: usize,
+    }
+    impl PartialOrd for DistIndex {
+        fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+            other.dist_sq.partial_cmp(&self.dist_sq)
+        }
+    }
+    impl Ord for DistIndex {
+        fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+            self.partial_cmp(other).unwrap()
+        }
+    }
+    impl Eq for DistIndex {}
 
     #[tracing::instrument(skip(input))]
     pub fn part_a(input: &str) -> anyhow::Result<String> {
-        part_a_circuit_size(input, 999)
+        part_a_circuit_size(input, 1000)
     }
 
     #[tracing::instrument(skip(input))]
@@ -18,33 +35,45 @@ pub mod solution {
             .map(|l| {
                 let (x, rest) = l.split_once(',').unwrap();
                 let (y, z) = rest.split_once(',').unwrap();
-                IVec3::new(x.parse().unwrap(), y.parse().unwrap(), z.parse().unwrap())
+                [
+                    x.parse::<f32>().unwrap(),
+                    y.parse().unwrap(),
+                    z.parse().unwrap(),
+                ]
             })
             .collect();
 
-        let mut circuits: Vec<HashSet<IVec3>> = Vec::with_capacity(1_000);
-        for i in 0..connection_count {
-            eprintln!("min {i}");
-            let mut min_dist = f32::MAX;
-            let mut min_coords = None;
-            for a in &coords {
-                for b in &coords {
-                    if a == b || circuits.iter().any(|c| c.contains(a) && c.contains(b)) {
-                        continue;
-                    }
+        let mut kdtree = KdTree::new(3);
+        for (i, c) in coords.iter().enumerate() {
+            kdtree.add(c, i).unwrap();
+        }
+        let mut distances = BinaryHeap::new();
 
-                    let dist = a.as_vec3().distance(b.as_vec3());
-                    if dist < min_dist {
-                        min_dist = dist;
-                        min_coords = Some((*a, *b));
-                    }
-                }
-            }
-            eprintln!("circuit {i}");
-            let (a, b) = min_coords.unwrap();
+        for (a_i, a) in coords.iter().enumerate() {
+            let nearest = kdtree
+                .iter_nearest(a, &squared_euclidean)
+                .unwrap()
+                .skip(1) // skip connection to self (0 dist)
+                .take((connection_count / 2).max(10))
+                .map(|(dist_sq, b_i)| DistIndex {
+                    dist_sq,
+                    index_a: a_i,
+                    index_b: *b_i,
+                });
+            distances.extend(nearest);
+        }
+
+        let mut circuits: Vec<HashSet<usize>> = Vec::with_capacity(connection_count);
+        for _ in 0..connection_count {
+            let nearest = distances.pop().expect("Nearest is available");
+            _ = distances.pop(); // nearest pairs come in... um, pairs, so discard the dupe
             match (
-                circuits.iter().position(|circ| circ.contains(&a)),
-                circuits.iter().position(|circ| circ.contains(&b)),
+                circuits
+                    .iter()
+                    .position(|circ| circ.contains(&nearest.index_a)),
+                circuits
+                    .iter()
+                    .position(|circ| circ.contains(&nearest.index_b)),
             ) {
                 (Some(circ_a), Some(circ_b)) => {
                     if circ_a != circ_b {
@@ -52,25 +81,32 @@ pub mod solution {
                         let max = circ_a.max(circ_b);
                         let to_merge = circuits.remove(max);
                         circuits[min].extend(to_merge);
+                    } else {
+                        // add_connection = false;
                     }
                 }
                 (Some(circ_a), None) => {
-                    circuits[circ_a].insert(b);
+                    circuits[circ_a].insert(nearest.index_a);
+                    circuits[circ_a].insert(nearest.index_b);
                 }
                 (None, Some(circ_b)) => {
-                    circuits[circ_b].insert(a);
+                    circuits[circ_b].insert(nearest.index_a);
+                    circuits[circ_b].insert(nearest.index_b);
                 }
                 (None, None) => {
-                    circuits.push(HashSet::from([a, b]));
+                    circuits.push(HashSet::from([nearest.index_a, nearest.index_b]));
                 }
             }
         }
 
         circuits.sort_unstable_by_key(|c| c.len());
-        let c: Vec<_> = circuits.iter().rev().map(|c| c.len()).collect();
-        tracing::warn!(?circuits, ?c);
         let res: usize = circuits.iter().rev().take(3).map(|c| c.len()).product();
-
+        // let circuit_coords = circuits
+        //     .iter()
+        //     .rev()
+        //     .take(3)
+        //     .map(|c| c.iter().map(|i| coords[*i]).collect::<Vec<_>>())
+        //     .collect::<Vec<_>>();
         Ok(res.to_string())
     }
 
@@ -92,7 +128,7 @@ mod tests {
     #[test]
     #[traced_test]
     fn day_8_a() {
-        let res = solution::part_a_circuit_size(TEST_INPUT, 9);
+        let res = solution::part_a_circuit_size(TEST_INPUT, 10);
         assert_eq!(EXPECTED_A, res.unwrap());
     }
 
