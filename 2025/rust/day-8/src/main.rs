@@ -16,7 +16,9 @@ struct Cli {
 #[tokio::main]
 #[tracing::instrument]
 async fn main() -> anyhow::Result<()> {
-    tracing_subscriber::fmt::init();
+    tracing_subscriber::fmt()
+        .with_max_level(tracing::Level::INFO)
+        .init();
     let cli = Cli::parse();
     let input = get_input(env::current_dir()?, 8).await?;
     let output = if cli.b {
