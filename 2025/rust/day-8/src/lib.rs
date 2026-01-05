@@ -75,8 +75,8 @@ pub mod solution {
             let nearest = distances.pop().expect("Nearest is available");
             nearest.process_circuits(&mut circuits);
             if circuits.len() == 1 && circuits[0].len() == coords.len() {
-                let a_x = coords[nearest.index_a][0];
-                let b_x = coords[nearest.index_b][0];
+                let a_x = coords[nearest.index_a].x;
+                let b_x = coords[nearest.index_b].x;
                 return Ok((a_x * b_x).to_string());
             }
         }
