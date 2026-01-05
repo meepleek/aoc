@@ -10,6 +10,39 @@ pub mod solution {
         index_b: usize,
     }
 
+    impl DistIndex {
+        fn process_circuits(&self, circuits: &mut Vec<HashSet<usize>>) {
+            match (
+                circuits
+                    .iter()
+                    .position(|circ| circ.contains(&self.index_a)),
+                circuits
+                    .iter()
+                    .position(|circ| circ.contains(&self.index_b)),
+            ) {
+                (Some(circ_a), Some(circ_b)) => {
+                    if circ_a != circ_b {
+                        let min = circ_a.min(circ_b);
+                        let max = circ_a.max(circ_b);
+                        let to_merge = circuits.remove(max);
+                        circuits[min].extend(to_merge);
+                    }
+                }
+                (Some(circ_a), None) => {
+                    circuits[circ_a].insert(self.index_a);
+                    circuits[circ_a].insert(self.index_b);
+                }
+                (None, Some(circ_b)) => {
+                    circuits[circ_b].insert(self.index_a);
+                    circuits[circ_b].insert(self.index_b);
+                }
+                (None, None) => {
+                    circuits.push(HashSet::from([self.index_a, self.index_b]));
+                }
+            }
+        }
+    }
+
     #[tracing::instrument(skip(input))]
     pub fn part_a(input: &str) -> anyhow::Result<String> {
         part_a_circuit_size(input, 1000)
@@ -25,36 +58,7 @@ pub mod solution {
         let mut circuits: Vec<HashSet<usize>> = Vec::with_capacity(connection_count);
         for _ in 0..connection_count {
             let nearest = distances.pop().expect("Nearest is available");
-            match (
-                circuits
-                    .iter()
-                    .position(|circ| circ.contains(&nearest.index_a)),
-                circuits
-                    .iter()
-                    .position(|circ| circ.contains(&nearest.index_b)),
-            ) {
-                (Some(circ_a), Some(circ_b)) => {
-                    if circ_a != circ_b {
-                        let min = circ_a.min(circ_b);
-                        let max = circ_a.max(circ_b);
-                        let to_merge = circuits.remove(max);
-                        circuits[min].extend(to_merge);
-                    } else {
-                        // add_connection = false;
-                    }
-                }
-                (Some(circ_a), None) => {
-                    circuits[circ_a].insert(nearest.index_a);
-                    circuits[circ_a].insert(nearest.index_b);
-                }
-                (None, Some(circ_b)) => {
-                    circuits[circ_b].insert(nearest.index_a);
-                    circuits[circ_b].insert(nearest.index_b);
-                }
-                (None, None) => {
-                    circuits.push(HashSet::from([nearest.index_a, nearest.index_b]));
-                }
-            }
+            nearest.process_circuits(&mut circuits);
         }
 
         circuits.sort_unstable_by_key(|c| c.len());
@@ -69,48 +73,11 @@ pub mod solution {
         let mut circuits: Vec<HashSet<usize>> = Vec::with_capacity(1000);
         loop {
             let nearest = distances.pop().expect("Nearest is available");
-            match (
-                circuits
-                    .iter()
-                    .position(|circ| circ.contains(&nearest.index_a)),
-                circuits
-                    .iter()
-                    .position(|circ| circ.contains(&nearest.index_b)),
-            ) {
-                (Some(circ_a), Some(circ_b)) => {
-                    if circ_a != circ_b {
-                        let min = circ_a.min(circ_b);
-                        let max = circ_a.max(circ_b);
-                        let to_merge = circuits.remove(max);
-                        circuits[min].extend(to_merge);
-                    }
-                }
-                (Some(circ_a), None) => {
-                    circuits[circ_a].insert(nearest.index_a);
-                    circuits[circ_a].insert(nearest.index_b);
-                }
-                (None, Some(circ_b)) => {
-                    circuits[circ_b].insert(nearest.index_a);
-                    circuits[circ_b].insert(nearest.index_b);
-                }
-                (None, None) => {
-                    circuits.push(HashSet::from([nearest.index_a, nearest.index_b]));
-                }
-            }
-
+            nearest.process_circuits(&mut circuits);
             if circuits.len() == 1 && circuits[0].len() == coords.len() {
                 let a_x = coords[nearest.index_a][0];
                 let b_x = coords[nearest.index_b][0];
-                tracing::warn!(a_x, b_x);
-                // tracing::warn!(?circuits);
-                tracing::warn!(circuit_lens=?circuits.iter().map(|c| c.len()).collect::<Vec<_>>());
-
                 return Ok((a_x * b_x).to_string());
-            } else {
-                tracing::warn!(circuit_count = circuits.len());
-                if circuits.len() == 2 {
-                    tracing::warn!(circuit_lens=?circuits.iter().map(|c| c.len()).collect::<Vec<_>>());
-                }
             }
         }
     }
