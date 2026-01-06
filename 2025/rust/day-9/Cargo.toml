@@ -17,6 +17,7 @@ tokio.workspace = true
 [dev-dependencies]
 criterion.workspace = true
 rstest.workspace = true
+test-case.workspace = true
 tracing-test.workspace = true
 
 [lints]
