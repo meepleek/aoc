@@ -19,8 +19,6 @@ pub mod solution {
         Ok(res.to_string())
     }
 
-    // todo: currently the output result is too high
-    // 4_566_760_900 => too high
     #[tracing::instrument(skip(input))]
     pub fn part_b(input: &str) -> anyhow::Result<String> {
         let tiles = input
@@ -32,45 +30,32 @@ pub mod solution {
     }
 
     pub(super) fn max_area_b(tiles: &[U64Vec2]) -> u64 {
+        let lines: Vec<(_, _)> = tiles.iter().circular_tuple_windows().collect();
         tiles
             .iter()
             .tuple_combinations()
             .filter(|(a, b)| {
-                // falling diagonal as in \
-                let falling = a.x >= b.x && a.y >= b.y || b.x > a.x && b.y > a.y;
-                if falling {
-                    let (top_left, btm_right) = if a.x >= b.x { (b, a) } else { (a, b) };
-                    tiles
-                        .iter()
-                        .any(|t| t.x <= top_left.x && t.y >= btm_right.y)
-                        && tiles
-                            .iter()
-                            .any(|t| t.x >= btm_right.x && t.y <= top_left.y)
-                        // no points inside the rectangle
-                        && !tiles.iter().any(|t| {
-                            t.x > top_left.x
-                                && t.x < btm_right.x
-                                && t.y > top_left.y
-                                && t.y < btm_right.y
-                        })
-                }
-                // raising diagonal as in /
-                else {
-                    let (top_right, btm_left) = if a.x >= b.x { (a, b) } else { (b, a) };
-                    tiles
-                        .iter()
-                        .any(|t| t.x >= top_right.x && t.y >= btm_left.y)
-                        && tiles
-                            .iter()
-                            .any(|t| t.x <= btm_left.x && t.y <= top_right.y)
-                        // no points inside the rectangle
-                        && !tiles.iter().any(|t| {
-                            t.x > btm_left.x
-                                && t.x < top_right.x
-                                && t.y > top_right.y
-                                && t.y < btm_left.y
-                        })
-                }
+                let top_left = a.min(**b);
+                let btm_right = a.max(**b);
+                // no lines crossing the rectangle
+                !lines.iter().any(|(a, b)| {
+                    let horizontal = a.y == b.y;
+                    if horizontal {
+                        a.y > top_left.y
+                            && a.y < btm_right.y
+                            && (a.x > top_left.x && a.x < btm_right.x
+                                || b.x > top_left.x && b.x < btm_right.x
+                                || a.x <= top_left.x && b.x >= btm_right.x
+                                || b.x <= top_left.x && a.x >= btm_right.x)
+                    } else {
+                        a.x > top_left.x
+                            && a.x < btm_right.x
+                            && (a.y > top_left.y && a.y < btm_right.y
+                                || b.y > top_left.y && b.y < btm_right.y
+                                || a.y <= top_left.y && b.y >= btm_right.y
+                                || b.y <= top_left.y && a.y >= btm_right.y)
+                    }
+                })
             })
             .map(|(a, b)| (a.max(*b) - a.min(*b) + U64Vec2::ONE).element_product())
             .max()
