@@ -1,7 +1,21 @@
 pub mod solution {
+    use glam::U64Vec2;
+    use itertools::Itertools;
+    use parse::vec::parse_u64vec2_res;
+
     #[tracing::instrument(skip(input))]
     pub fn part_a(input: &str) -> anyhow::Result<String> {
-        todo!("a")
+        let tiles = input
+            .lines()
+            .map(parse_u64vec2_res)
+            .collect::<Result<Vec<_>, _>>()?;
+        let res = tiles
+            .iter()
+            .tuple_combinations()
+            .map(|(a, b)| ((a.max(*b) - a.min(*b)) + U64Vec2::ONE).element_product())
+            .max()
+            .unwrap();
+        Ok(res.to_string())
     }
 
     #[tracing::instrument(skip(input))]
@@ -16,8 +30,8 @@ mod tests {
     use tracing_test::traced_test;
 
     const TEST_INPUT: &str = include_str!("../inputs/example.txt");
-    const EXPECTED_A: &str = "todo_expected_a";
-    const EXPECTED_B: &str = "todo_expected_b";
+    const EXPECTED_A: &str = "50";
+    const EXPECTED_B: &str = "24";
 
     #[test]
     #[traced_test]

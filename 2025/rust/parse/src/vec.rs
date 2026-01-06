@@ -1,4 +1,4 @@
-use glam::{IVec2, UVec2};
+use glam::{I64Vec2, IVec2, U64Vec2, UVec2};
 use nom::{bytes::complete::tag, character::complete, sequence::separated_pair, IResult};
 use paste::paste;
 
@@ -22,3 +22,5 @@ macro_rules! impl_parse_vec2 {
 
 impl_parse_vec2!(ivec2, IVec2, i32);
 impl_parse_vec2!(uvec2, UVec2, u32);
+impl_parse_vec2!(i64vec2, I64Vec2, i64);
+impl_parse_vec2!(u64vec2, U64Vec2, u64);
